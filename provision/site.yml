@@ -1,0 +1,52 @@
+--- 
+- hosts: all
+  gather_facts: no
+  connection: local
+  
+  tasks:
+  - name: remove existing known host
+    known_hosts: path='~/.ssh/known_hosts' name={{ inventory_hostname }} state=absent
+    
+- hosts: all
+  gather_facts: no
+  
+  tasks:
+  - name: apt update
+    become: yes
+    apt: update_cache=yes
+    
+- hosts: mids
+  gather_facts: no
+  
+  tasks:
+  
+  - name: install zip
+    become: yes
+    apt: update_cache=no name=zip
+    
+  - name: create agent directory
+    become: yes
+    file: path=/servicenow state=directory owner=vagrant
+  
+  - name: install mid agent
+    unarchive: copy=yes dest=/servicenow src=files/{{ mid_install_zip }} 
+
+  - name: configure mid agent 
+    template: src=files/mid_config.j2 dest=/servicenow/agent/config.xml owner=vagrant force=yes 
+    
+  - name: start mid agent
+    shell: /servicenow/agent/start.sh chdir=/servicenow/agent
+
+- hosts: nodes
+  gather_facts: no
+  
+  tasks:
+  - name: install ansible
+    become: yes
+    apt: update_cache=no name=ansible state=present
+    
+  - name: install git
+    become: yes
+    apt: update_cache=no name=git state=present
+    
+
